@@ -1,0 +1,8 @@
+/* Presentation-only overrides. Original geometry, storage and rendering code are unchanged. */
+:root { --bg:#fbfaf7; --paper:#f7f4ee; --panel:#fffdfa; --line:#e8e2db; --ink:#302d35; --muted:#817788; --accent:#80658f; --accent-soft:#eee7f4; --teal:#607b6b; }
+.btn:hover { background:#f1ebf6; }
+.btn.primary:hover { background:#6c517c; }
+.btn.on { background:#756080; }
+.item:hover { border-color:#bca5ca; }
+header, aside, footer { background:var(--panel); }
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
