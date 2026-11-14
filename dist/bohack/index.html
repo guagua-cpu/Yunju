@@ -60,10 +60,16 @@ main{position:relative;overflow:hidden;background:var(--paper)}
 #plan.tool-demolish .wall{pointer-events:all;cursor:pointer}
 #plan.tool-demolish .wall:hover{fill:#d9894f}
 #plan.tool-select .room:hover{opacity:.82}
-#plan.tool-wall,#plan.tool-win,#plan.tool-door,#plan.tool-slide,#plan.tool-room,#plan.tool-calibrate{cursor:crosshair}
+#plan.tool-wall,#plan.tool-win,#plan.tool-door,#plan.tool-slide,#plan.tool-room,#plan.tool-calibrate,#plan.tool-mepLine,#plan.tool-mepNode{cursor:crosshair}
+#gMep{pointer-events:none}
+#gMep .mep-hit,#gMep .mep-vert,#gMep .mep-node{pointer-events:all;cursor:pointer}
+#gMep .mep-vert{cursor:move}
 #plan.tool-select .wall{pointer-events:all;cursor:pointer}
 #wallKindGrp{display:none}
 body.draw-wall #wallKindGrp{display:flex}
+#mepTypeGrp,#mepNodeGrp{display:none!important}
+body.draw-mep-line #mepTypeGrp{display:flex!important}
+body.draw-mep-node #mepNodeGrp{display:flex!important}
 .menu-pop hr{margin:4px 0}
 #plan .furn{cursor:move}
 @media (hover:hover){#plan .furn:hover{filter:drop-shadow(0 0 2px rgba(181,101,58,.7))}}
@@ -151,6 +157,12 @@ main.animating #hint3d{opacity:0}
 #roomList button:hover{background:#f2ece2}
 #roomList button.on{background:var(--accent-soft);color:var(--accent)}
 #roomList small{color:var(--muted);font-variant-numeric:tabular-nums}
+.mep-legend{padding:8px 12px 14px;border-top:1px solid var(--line);margin-top:6px}
+.mep-legend h4{margin:0 0 8px;font-size:12px;font-weight:600}
+.mep-legend ul{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.mep-legend li{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink)}
+.mep-legend i{width:14px;height:6px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.mep-legend .muted{margin:8px 0 0;font-size:11px;line-height:1.4}
 .range{display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--muted);font-size:12px}
 .range input{width:100px;accent-color:var(--accent)}
 .menu{position:relative}
@@ -233,6 +245,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip" id="tgLib" data-en="◧ Library">◧ 家具库</button>
       <button class="btn chip" id="tgPanel" data-en="Properties ◨">属性 ◨</button>
     </div>
+    
     <div class="brand"><b data-en="3BR 2LR 2BA · Interior Design">三室两厅两卫 · 装修设计</b><span id="subtitle">原始户型 1:60 · 尺寸单位 mm</span></div>
     <div class="grp seg" id="viewSeg" title="切换 2D / 3D (T)" data-en-title="Switch 2D / 3D (T)">
       <span class="pill"></span>
@@ -249,6 +262,34 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn" data-tool="slide" title="画推拉门" data-en-title="Draw sliding door" data-en="Slide">推拉门</button>
       <button class="btn" data-tool="room" title="画房间" data-en-title="Draw room" data-en="Room">画房间</button>
       <button class="btn" data-tool="calibrate" title="标定比例：点两点并输入已知长度" data-en-title="Calibrate scale: two points + known length" data-en="Scale">标定</button>
+      <button class="btn" data-tool="mepLine" title="画管线：逐点折线，双击或 Enter 完成" data-en-title="Draw MEP polyline · double-click / Enter to finish" data-en="MEP line">画管线</button>
+      <button class="btn" data-tool="mepNode" title="放置插座/电箱等节点" data-en-title="Place socket / panel node" data-en="MEP node">放节点</button>
+    </div>
+    <div class="grp only2d" id="mepTypeGrp" title="管线类型" data-en-title="MEP type">
+      <button class="btn chip on" data-mep="power" data-en="Power">强电</button>
+      <button class="btn chip" data-mep="weak" data-en="Weak">弱电</button>
+      <button class="btn chip" data-mep="waterCold" data-en="Cold">冷水</button>
+      <button class="btn chip" data-mep="waterHot" data-en="Hot">热水</button>
+      <button class="btn chip" data-mep="heat" data-en="Heat">暖气</button>
+      <button class="btn chip" data-mep="ac" data-en="AC">空调</button>
+      <button class="btn primary" id="mepFinish" title="完成当前折线" data-en-title="Finish current polyline" data-en="Done">完成</button>
+      <button class="btn" id="mepUndoPt" title="撤销上一个点" data-en-title="Undo last point" data-en="Undo pt">撤点</button>
+    </div>
+    <div class="grp only2d" id="mepNodeGrp" title="节点类型" data-en-title="Node type">
+      <button class="btn chip on" data-mn="socket" data-en="Socket">五孔</button>
+      <button class="btn chip" data-mn="fridge" data-en="Fridge">冰箱</button>
+      <button class="btn chip" data-mn="splash" data-en="Splash">防溅</button>
+      <button class="btn chip" data-mn="acSock" data-en="AC sock">空调插</button>
+      <button class="btn chip" data-mn="data" data-en="Data">数据</button>
+      <button class="btn chip" data-mn="tv" data-en="TV">电视</button>
+      <button class="btn chip" data-mn="panel" data-en="Power box">强电箱</button>
+      <button class="btn chip" data-mn="weakPanel" data-en="Weak box">弱电箱</button>
+      <button class="btn chip" data-mn="acIn" data-en="AC in">内机</button>
+      <button class="btn chip" data-mn="acOut" data-en="AC out">外机</button>
+    </div>
+    <div class="grp only2d">
+      <button class="btn" id="mepAuto" title="按户型自动生成强/弱电、水暖示意（可再手改）" data-en-title="Auto-generate MEP from rooms (then edit)" data-en="Auto MEP">自动管线</button>
+      <button class="btn danger" id="mepClear" title="清空全部管线与节点" data-en-title="Clear all MEP" data-en="Clear MEP">清空管线</button>
     </div>
     <div class="grp only2d" id="wallKindGrp" title="墙体类型" data-en-title="Wall type">
       <button class="btn chip" data-wk="b" data-en="Bearing">承重</button>
@@ -284,6 +325,9 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip" data-layer="bearing" data-en="Bearing walls">承重墙</button>
       <button class="btn chip on" data-layer="wallSnap" title="拖动家具时贴墙吸附" data-en-title="Snap furniture to walls while dragging" data-en="Wall snap">贴墙吸附</button>
       <button class="btn chip on" data-layer="underlay" title="显示户型底图" data-en-title="Show floor-plan underlay" data-en="Underlay">底图</button>
+      <button class="btn chip" data-layer="elec" title="强电示意走线" data-en-title="Schematic power runs" data-en="Power">电线</button>
+      <button class="btn chip" data-layer="water" title="冷热给水示意" data-en-title="Schematic cold/hot water" data-en="Water">水管</button>
+      <button class="btn chip" data-layer="heat" title="地暖/暖气示意" data-en-title="Schematic heating" data-en="Heat">暖气</button>
     </div>
     <div class="grp only3d">
       <button class="btn chip on" data-cut="2.8" data-en="Full walls">全高墙</button>
@@ -293,6 +337,9 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <button class="btn chip on" data-t="furn" data-en="Furniture">家具</button>
       <button class="btn chip on" data-t="labels" data-en="Labels">房间名</button>
       <button class="btn chip" data-t="night" data-en="Night">夜景</button>
+      <button class="btn chip" data-t="elec" title="示意强电天花走线" data-en-title="Schematic ceiling power runs" data-en="Power">电线</button>
+      <button class="btn chip" data-t="water" title="示意冷热给水" data-en-title="Schematic cold/hot water" data-en="Water">水管</button>
+      <button class="btn chip" data-t="heat" title="示意地暖/暖气主管" data-en-title="Schematic heating loops" data-en="Heat">暖气</button>
     </div>
     <div class="grp only3d"><label class="range"><span data-en="Sun">日照</span> <input type="range" id="sun" min="7" max="18" step=".25" value="10" style="width:84px"><span id="sunT">10:00</span></label></div>
     <div class="spacer"></div>
@@ -326,6 +373,18 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <h4 data-en="Rooms · click to fly there">房间 · 点击飞到该房间</h4>
       <div id="roomList"></div>
     </div>
+    <div id="mepLegend" class="mep-legend" hidden>
+      <h4 data-en="MEP (editable schematic)">管线工程图（可编辑）</h4>
+      <ul>
+        <li><i style="background:#e8873a"></i><span data-en="Strong power">强电</span></li>
+        <li><i style="background:#3b82c4"></i><span data-en="Weak / data">弱电</span></li>
+        <li><i style="background:#2563eb"></i><span data-en="Cold water">冷水</span></li>
+        <li><i style="background:#c44a3b"></i><span data-en="Hot water">热水</span></li>
+        <li><i style="background:#d97706"></i><span data-en="Heating">暖气</span></li>
+        <li><i style="background:#84cc16"></i><span data-en="AC">空调管</span></li>
+      </ul>
+      <p class="muted" data-en="Auto-generate, then draw/edit polylines &amp; nodes in 2D; syncs to 3D. Schematic only.">可用「自动管线」生成，再用「画管线 / 放节点」手改；2D 与 3D 同步。示意用，非施工图。</p>
+    </div>
     <div id="lib"></div>
   </aside>
 
@@ -339,6 +398,7 @@ main.drawer-panel #fab{opacity:0;visibility:hidden}
       <g id="gWalls"></g>
       <g id="gOpen"></g>
       <g id="gLabels" pointer-events="none"></g>
+      <g id="gMep"></g>
       <g id="gDims" pointer-events="none"></g>
       <g id="gMeasure" pointer-events="none"></g>
       <g id="gDraft" pointer-events="none"></g>
@@ -590,16 +650,17 @@ function roomsMetaFromGeo(roomsDef){
   roomsDef.forEach(r => rooms[r.id] = {name:r.name, mat:r.mat});
   return rooms;
 }
+function emptyMep(){ return {runs:[], nodes:[]}; }
 function defaultState(){
   const geometry = cloneGeometry();
   return {
     furniture:defaultFurniture(), rooms:roomsMetaFromGeo(geometry.roomsDef), demolished:[], measures:[],
-    geometry, underlay:null, custom:false,
+    geometry, mep:emptyMep(), underlay:null, custom:false,
   };
 }
 function blankRebuildState(underlay){
   const geometry = emptyGeometry();
-  return {furniture:[], rooms:{}, demolished:[], measures:[], geometry, underlay:underlay||null, custom:true};
+  return {furniture:[], rooms:{}, demolished:[], measures:[], geometry, mep:emptyMep(), underlay:underlay||null, custom:true};
 }
 
 const STORE = 'huxing-design-v2';
@@ -619,6 +680,7 @@ function fixState(s){
   else s.geometry = cloneGeometry(s.geometry);
   s.rooms = Object.assign(roomsMetaFromGeo(s.geometry.roomsDef), s.rooms || {});
   s.demolished = s.demolished || []; s.measures = s.measures || [];
+  if (!s.mep || !Array.isArray(s.mep.runs) || !Array.isArray(s.mep.nodes)) s.mep = emptyMep();
   s.custom = !!s.custom;
   // underlay.src 可能很大：持久化时只保留元数据，src 会话内或 IndexedDB 恢复
   if (s.underlay && s.underlay.src === undefined) s.underlay.src = null;
@@ -665,7 +727,8 @@ const svg = $('#plan');
 let state = load() || defaultState();
 refreshBounds();
 const ui = {tool:'select', sel:null, mA:null, mCur:null, draw:null, cal:null, wallKind:'n',
-  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, underlay:true}};
+  mepType:'power', mepNodeKind:'socket',
+  layers:{dims:true, labels:true, furn:true, grid:false, bearing:false, wallSnap:true, underlay:true, elec:false, water:false, heat:false}};
 let view = {x0:0, y0:0, s:.06};
 const undoStack = [], redoStack = [];
 
@@ -718,6 +781,8 @@ function validateSel(){
   else if (k === 'win' && !geoWins()[ui.sel.i]) ui.sel = null;
   else if (k === 'door' && !geoDoors()[ui.sel.i]) ui.sel = null;
   else if (k === 'slide' && !geoSlides()[ui.sel.i]) ui.sel = null;
+  else if (k === 'mepRun' && !ensureMep().runs.find(r => r.id === ui.sel.id)) ui.sel = null;
+  else if (k === 'mepNode' && !ensureMep().nodes.find(n => n.id === ui.sel.id)) ui.sel = null;
 }
 const getF = id => state.furniture.find(f => f.id === id);
 
@@ -1057,9 +1122,365 @@ function renderSel(){
   $('#gSel').innerHTML = s;
 }
 
+/* ======================= 管线工程图（可编辑 state.mep → 2D/3D） ======================= */
+const WET_FURN_TYPES = new Set(['ksink','toilet','vanity','shower','bathtub','washer','dishwasher','waterheater']);
+const MEP_META = {
+  power:     {layer:'elec',  color:'#e8873a', z:2.45, r:0.022, label:'强电', en:'Power'},
+  weak:      {layer:'elec',  color:'#3b82c4', z:2.35, r:0.016, label:'弱电', en:'Weak'},
+  waterCold: {layer:'water', color:'#2563eb', z:0.28, r:0.022, label:'冷水', en:'Cold'},
+  waterHot:  {layer:'water', color:'#c44a3b', z:0.42, r:0.02,  label:'热水', en:'Hot'},
+  heat:      {layer:'heat',  color:'#d97706', z:0.12, r:0.018, label:'暖气', en:'Heat'},
+  ac:        {layer:'elec',  color:'#84cc16', z:2.50, r:0.02,  label:'空调', en:'AC'},
+};
+const MEP_NODE_META = {
+  panel:     {layer:'elec',  color:'#e8873a', label:'强电箱', en:'Power box',  z:1.5},
+  weakPanel: {layer:'elec',  color:'#3b82c4', label:'弱电箱', en:'Weak box',   z:1.5},
+  socket:    {layer:'elec',  color:'#c44a3b', label:'五孔插座', en:'Socket',   z:0.3},
+  fridge:    {layer:'elec',  color:'#c44a3b', label:'冰箱插座', en:'Fridge',   z:0.3},
+  splash:    {layer:'elec',  color:'#c44a3b', label:'防溅水插座', en:'Splash', z:1.1},
+  acSock:    {layer:'elec',  color:'#c44a3b', label:'空调插座', en:'AC sock',  z:2.2},
+  data:      {layer:'elec',  color:'#3b82c4', label:'数据插座', en:'Data',     z:0.3},
+  tv:        {layer:'elec',  color:'#3b82c4', label:'电视插座', en:'TV',       z:0.5},
+  acIn:      {layer:'elec',  color:'#e8b84a', label:'空调内机', en:'AC in',    z:2.4},
+  acOut:     {layer:'elec',  color:'#84cc16', label:'空调外机', en:'AC out',   z:0.4},
+};
+let _mepN = 1;
+const mepUid = (p='m') => p + Date.now().toString(36) + (_mepN++);
+function ensureMep(){ if (!state.mep) state.mep = emptyMep(); return state.mep; }
+function mepRoomNameOf(r){ return state.rooms[r.id]?.name || r.name || ''; }
+function mepKindOf(r){
+  const n = mepRoomNameOf(r), mat = state.rooms[r.id]?.mat || r.mat || '';
+  if (/卫|浴|厕|bath|toilet/i.test(n) || mat === 'antislip') return 'bath';
+  if (/厨|kitchen/i.test(n) || mat === 'tile600') return 'kitchen';
+  if (/洗衣|laundry/i.test(n)) return 'laundry';
+  if (/过道|玄关|走廊|hall|corridor/i.test(n)) return 'hall';
+  if (/客|餐|living|dining/i.test(n) || mat === 'tile800') return 'living';
+  if (/阳台|balcon/i.test(n) || mat === 'walnut') return 'balcony';
+  if (/卧|房|床|bed|kid|child|master|书房/i.test(n) || mat === 'wood') return 'bedroom';
+  return 'other';
+}
+function mepPtOf(r){
+  if (r.at) return [r.at[0], r.at[1]];
+  const b = bbox(r.poly); return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2];
+}
+function mepDedupeXy(pts){
+  const out = [];
+  for (const p of pts){
+    const last = out[out.length - 1];
+    if (!last || Math.hypot(p[0] - last[0], p[1] - last[1]) > 40) out.push([Math.round(p[0]), Math.round(p[1])]);
+  }
+  return out;
+}
+function mepRouteXy(a, b, hub){
+  if (!hub) return mepDedupeXy([a, [b[0], a[1]], b]);
+  return mepDedupeXy([a, [hub[0], a[1]], hub, [hub[0], b[1]], b]);
+}
+function mepFloorLoopXy(aabb, inset = 380){
+  let [x0, y0, x1, y1] = aabb;
+  x0 += inset; y0 += inset; x1 -= inset; y1 -= inset;
+  if (x1 - x0 < 700 || y1 - y0 < 700) return null;
+  const pts = [[x0, y0]], step = Math.max(450, Math.min(700, (y1 - y0) / 5));
+  let y = y0, left = true;
+  while (y < y1 - 80){
+    pts.push(left ? [x1, y] : [x0, y]);
+    y += step;
+    if (y >= y1) break;
+    pts.push(left ? [x1, y] : [x0, y]);
+    left = !left;
+  }
+  pts.push(left ? [x0, Math.min(y, y1)] : [x1, Math.min(y, y1)]);
+  return mepDedupeXy(pts);
+}
+function mepWallSockets(r, inset = 280){
+  const [x0, y0, x1, y1] = bbox(r.poly);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  return {
+    N: [cx, y0 + inset], S: [cx, y1 - inset], W: [x0 + inset, cy], E: [x1 - inset, cy],
+    NW: [x0 + inset, y0 + inset], NE: [x1 - inset, y0 + inset],
+    SW: [x0 + inset, y1 - inset], SE: [x1 - inset, y1 - inset],
+  };
+}
+function mepAddRun(type, pts){
+  const clean = mepDedupeXy(pts);
+  if (clean.length < 2) return null;
+  const run = {id: mepUid('r'), type, pts: clean};
+  ensureMep().runs.push(run);
+  return run;
+}
+function mepAddNode(kind, x, y){
+  const n = {id: mepUid('n'), kind, x: Math.round(x), y: Math.round(y)};
+  ensureMep().nodes.push(n);
+  return n;
+}
+function mepOrthoPoint(prev, p, forceOrtho = true){
+  if (!forceOrtho || !prev) return {x: Math.round(p.x / 50) * 50, y: Math.round(p.y / 50) * 50};
+  const dx = Math.abs(p.x - prev[0]), dy = Math.abs(p.y - prev[1]);
+  if (dx >= dy) return {x: Math.round(p.x / 50) * 50, y: prev[1]};
+  return {x: prev[0], y: Math.round(p.y / 50) * 50};
+}
+/** 按装修强/弱电工程图风格自动生成可编辑管线 */
+function autoGenerateMep(replace = true){
+  const mep = ensureMep();
+  if (replace){ mep.runs = []; mep.nodes = []; }
+  const rooms = geoRooms().filter(r => r.counted !== false && r.poly?.length >= 3);
+  const b = BOUNDS;
+  if (!rooms.length){
+    const m = 800, loop = [[b.x+m,b.y+m],[b.x+b.w-m,b.y+m],[b.x+b.w-m,b.y+b.h-m],[b.x+m,b.y+b.h-m],[b.x+m,b.y+m]];
+    mepAddRun('power', loop);
+    mepAddRun('weak', loop.map(([x,y]) => [x+120, y+120]));
+    mepAddNode('panel', b.x + b.w/2, b.y + b.h/2);
+    return mep;
+  }
+  const kinds = Object.fromEntries(rooms.map(r => [r.id, mepKindOf(r)]));
+  const hall = rooms.find(r => kinds[r.id] === 'hall') || rooms.find(r => kinds[r.id] === 'living') || rooms[0];
+  const hub = mepPtOf(hall);
+  const kitchen = rooms.find(r => kinds[r.id] === 'kitchen');
+  const living = rooms.find(r => kinds[r.id] === 'living');
+  const balcony = rooms.find(r => kinds[r.id] === 'balcony' || kinds[r.id] === 'laundry');
+  const entry = geoDoors().find(d => d.entry) || geoDoors()[0];
+  const entryPt = entry
+    ? [(entry.rect[0]+entry.rect[2])/2, (entry.rect[1]+entry.rect[3])/2]
+    : hub;
+  // 电箱：过道靠近入户
+  const panel = mepAddNode('panel', (hub[0]*2 + entryPt[0])/3, (hub[1]*2 + entryPt[1])/3);
+  const weakP = mepAddNode('weakPanel', panel.x + 350, panel.y + 80);
+  const panelPt = [panel.x, panel.y], weakPt = [weakP.x, weakP.y];
+
+  const powerEnds = [], weakEnds = [], wetEnds = [];
+  for (const r of rooms){
+    const k = kinds[r.id], w = mepWallSockets(r);
+    if (k === 'balcony') continue;
+    if (k === 'bedroom'){
+      powerEnds.push(mepAddNode('socket', ...w.W), mepAddNode('socket', ...w.E), mepAddNode('acSock', ...w.N));
+      weakEnds.push(mepAddNode('data', ...w.S));
+      mepAddNode('acIn', ...w.NE);
+    } else if (k === 'living'){
+      powerEnds.push(mepAddNode('socket', ...w.S), mepAddNode('socket', ...w.W), mepAddNode('acSock', ...w.N));
+      weakEnds.push(mepAddNode('tv', ...w.N), mepAddNode('data', ...w.E));
+      mepAddNode('acIn', ...w.NW);
+    } else if (k === 'kitchen'){
+      powerEnds.push(mepAddNode('splash', ...w.N), mepAddNode('fridge', ...w.E), mepAddNode('socket', ...w.W));
+      wetEnds.push([w.N[0], w.N[1]], [w.W[0], w.W[1]]);
+    } else if (k === 'bath' || k === 'laundry'){
+      powerEnds.push(mepAddNode('splash', ...w.W));
+      wetEnds.push([w.E[0], w.E[1]], [w.S[0], w.S[1]]);
+    } else if (k === 'hall'){
+      powerEnds.push(mepAddNode('socket', ...w.S));
+    } else {
+      powerEnds.push(mepAddNode('socket', ...w.S));
+    }
+  }
+  for (const f of state.furniture || []){
+    if (f.type === 'fridge') powerEnds.push(mepAddNode('fridge', f.cx, f.cy));
+    if (f.type === 'tv') weakEnds.push(mepAddNode('tv', f.cx, f.cy));
+    if (f.type === 'acwall' || f.type === 'aircon'){
+      powerEnds.push(mepAddNode('acSock', f.cx, f.cy));
+      mepAddNode('acIn', f.cx, f.cy - 200);
+    }
+    if (WET_FURN_TYPES.has(f.type)) wetEnds.push([f.cx, f.cy]);
+  }
+  if (balcony){
+    const w = mepWallSockets(balcony);
+    mepAddNode('acOut', ...w.E);
+    mepAddRun('ac', mepRouteXy(panelPt, w.E, hub));
+  } else if (living){
+    const w = mepWallSockets(living, 200);
+    mepAddNode('acOut', w.E[0] + 400, w.E[1]);
+  }
+
+  // 强电：箱 → 各插座（正交折线，带轻微岔口）
+  for (const n of powerEnds){
+    const path = mepRouteXy(panelPt, [n.x, n.y], hub);
+    // 末端岔口：最后一节拐一点再落到插座，贴近工程图分支感
+    if (path.length >= 2){
+      const a = path[path.length - 2], b = path[path.length - 1];
+      const mid = [Math.round((a[0]+b[0])/2), Math.round((a[1]+b[1])/2)];
+      path.splice(path.length - 1, 0, mid);
+    }
+    mepAddRun('power', path);
+  }
+  for (const n of weakEnds){
+    mepAddRun('weak', mepRouteXy(weakPt, [n.x, n.y], hub));
+  }
+
+  // 水暖
+  const plantRoom = kitchen || rooms.find(r => ['bath','laundry'].includes(kinds[r.id])) || hall;
+  const plant = mepPtOf(plantRoom);
+  const wetRooms = rooms.filter(r => ['bath','kitchen','laundry'].includes(kinds[r.id]));
+  if (!wetRooms.length) wetRooms.push(...rooms.filter(r => !['bedroom','balcony'].includes(kinds[r.id])).slice(0, 2));
+  for (const r of wetRooms){
+    const w = mepWallSockets(r, 320);
+    wetEnds.push(w.N, w.E);
+  }
+  for (const pt of wetEnds){
+    mepAddRun('waterCold', mepRouteXy(plant, pt, hub).map(([x,y],i) => [x+(i?50:0), y+(i?30:0)]));
+    mepAddRun('waterHot', mepRouteXy(plant, pt, hub).map(([x,y],i) => [x-(i?50:0), y-(i?30:0)]));
+  }
+  const heated = rooms.filter(r => ['bedroom','living','hall','other'].includes(kinds[r.id]));
+  for (const r of (heated.length ? heated : rooms)){
+    const loop = mepFloorLoopXy(bbox(r.poly));
+    if (!loop) continue;
+    mepAddRun('heat', mepRouteXy(plant, loop[0], hub));
+    mepAddRun('heat', loop);
+  }
+  return mep;
+}
+function syncMepLayerBtns(){
+  ['elec', 'water', 'heat'].forEach(k => {
+    document.querySelectorAll(`[data-layer="${k}"], #toggles3d [data-t="${k}"]`).forEach(b => {
+      b.classList.toggle('on', !!ui.layers[k]);
+    });
+  });
+  const show = ui.layers.elec || ui.layers.water || ui.layers.heat;
+  const leg = $('#mepLegend');
+  if (leg) leg.hidden = !show;
+}
+function enableMepLayers(on = true){
+  ui.layers.elec = ui.layers.water = ui.layers.heat = !!on;
+  syncMepLayerBtns();
+}
+function mepLayerVisible(typeOrKind){
+  const meta = MEP_META[typeOrKind] || MEP_NODE_META[typeOrKind];
+  return meta ? !!ui.layers[meta.layer] : false;
+}
+function mepNodeSVG(n, k){
+  const m = MEP_NODE_META[n.kind] || MEP_NODE_META.socket;
+  const c = m.color, sel = ui.sel?.kind === 'mepNode' && ui.sel.id === n.id;
+  const sw = sel ? 3 : 1.5, stroke = sel ? '#111' : '#fff';
+  const hit = `<circle class="mep-hit" r="${Math.max(120, 10*k)}" fill="transparent"/>`;
+  if (n.kind === 'panel' || n.kind === 'weakPanel'){
+    return `<g class="mep-node" data-mep-node="${n.id}" transform="translate(${n.x},${n.y})">${hit}
+      <rect x="-140" y="-100" width="280" height="200" rx="24" fill="${c}" stroke="${stroke}" stroke-width="${sw}" vector-effect="non-scaling-stroke"/>
+      <text text-anchor="middle" y="18" font-size="72" fill="#fff" font-weight="600" pointer-events="none">${esc(tr(m.label, m.en))}</text></g>`;
+  }
+  if (n.kind === 'acIn'){
+    return `<g class="mep-node" data-mep-node="${n.id}" transform="translate(${n.x},${n.y})">${hit}
+      <rect x="-200" y="-50" width="400" height="100" rx="10" fill="${c}" stroke="${stroke}" stroke-width="${sw}" vector-effect="non-scaling-stroke"/>
+      <line x1="-160" y1="-20" x2="160" y2="-20" stroke="#fff" stroke-width="8" pointer-events="none"/><line x1="-160" y1="20" x2="160" y2="20" stroke="#fff" stroke-width="8" pointer-events="none"/></g>`;
+  }
+  if (n.kind === 'acOut'){
+    return `<g class="mep-node" data-mep-node="${n.id}" transform="translate(${n.x},${n.y})">${hit}
+      <rect x="-110" y="-90" width="220" height="180" rx="16" fill="${c}" stroke="${stroke}" stroke-width="${sw}" vector-effect="non-scaling-stroke"/>
+      <circle r="40" fill="none" stroke="#fff" stroke-width="10" pointer-events="none"/></g>`;
+  }
+  const weak = n.kind === 'data' || n.kind === 'tv';
+  return `<g class="mep-node" data-mep-node="${n.id}" transform="translate(${n.x},${n.y})">${hit}
+    <path d="M -90 0 A 90 90 0 0 1 90 0 Z" fill="${c}" stroke="${stroke}" stroke-width="${sw}" vector-effect="non-scaling-stroke"/>
+    <circle cy="-35" r="14" fill="#fff" pointer-events="none"/>${weak ? '' : '<circle cx="-28" cy="-10" r="10" fill="#fff" pointer-events="none"/><circle cx="28" cy="-10" r="10" fill="#fff" pointer-events="none"/>'}
+    ${sel ? `<circle r="${5*k}" fill="none" stroke="#111" stroke-width="2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" pointer-events="none"/>` : ''}</g>`;
+}
+function mepDistToSeg(px, py, a, b){
+  const dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx*dx + dy*dy;
+  if (L2 < 1) return Math.hypot(px - a[0], py - a[1]);
+  let t = ((px - a[0]) * dx + (py - a[1]) * dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (a[0] + t * dx), py - (a[1] + t * dy));
+}
+/** 几何拾取：点击空白处时找最近管线/节点（不依赖 SVG hit） */
+function pickMepAt(x, y, tolMm){
+  const mep = ensureMep();
+  const tol = tolMm ?? Math.max(150, 12 / view.s);
+  let bestN = null, bestNd = tol;
+  for (const n of mep.nodes){
+    if (!mepLayerVisible(n.kind)) continue;
+    const d = Math.hypot(x - n.x, y - n.y);
+    if (d < bestNd){ bestNd = d; bestN = n; }
+  }
+  if (bestN) return {kind:'mepNode', id:bestN.id};
+  let bestR = null, bestRd = tol;
+  for (const run of mep.runs){
+    if (!mepLayerVisible(run.type) || !run.pts || run.pts.length < 2) continue;
+    for (let i = 0; i < run.pts.length - 1; i++){
+      const d = mepDistToSeg(x, y, run.pts[i], run.pts[i + 1]);
+      if (d < bestRd){ bestRd = d; bestR = run; }
+    }
+  }
+  if (bestR) return {kind:'mepRun', id:bestR.id};
+  return null;
+}
+function renderMep(){
+  const g = $('#gMep');
+  if (!g) return;
+  const show = ui.layers.elec || ui.layers.water || ui.layers.heat;
+  syncMepLayerBtns();
+  const mep = ensureMep();
+  // 画线中即使图层暂时关也要显示预览
+  const drawing = ui.draw?.preview?.type === 'mepPoly';
+  if (!show && !drawing){ g.innerHTML = ''; return; }
+  const sk = 1 / view.s;
+  let html = '';
+  if (show) for (const run of mep.runs){
+    if (!mepLayerVisible(run.type) || !run.pts || run.pts.length < 2) continue;
+    const meta = MEP_META[run.type] || MEP_META.power;
+    const sel = ui.sel?.kind === 'mepRun' && ui.sel.id === run.id;
+    const d = run.pts.map((p, i) => `${i ? 'L' : 'M'}${p[0]},${p[1]}`).join(' ');
+    // 粗透明命中条 + 可见线（屏幕像素宽度，缩放不变）
+    html += `<path class="mep-hit" data-mep-run="${run.id}" d="${d}" fill="none" stroke="transparent" stroke-width="14"
+      stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+    html += `<path data-mep-run="${run.id}" d="${d}" fill="none" stroke="${meta.color}" stroke-width="${sel ? 5 : 3.5}"
+      stroke-linecap="round" stroke-linejoin="round" opacity="${sel ? .98 : .88}" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+    if (sel){
+      run.pts.forEach((p, i) => {
+        html += `<circle class="mep-vert" data-mep-vert="${run.id}:${i}" cx="${p[0]}" cy="${p[1]}" r="${7*sk}" fill="#fff" stroke="${meta.color}"
+          stroke-width="2.5" vector-effect="non-scaling-stroke"/>`;
+      });
+    }
+  }
+  if (show) for (const n of mep.nodes){
+    if (!mepLayerVisible(n.kind)) continue;
+    html += mepNodeSVG(n, sk);
+  }
+  if (drawing){
+    const p = ui.draw.preview, meta = MEP_META[p.mepType] || MEP_META.power;
+    const pts = p.pts.concat(p.cur ? [[p.cur.x, p.cur.y]] : []);
+    if (pts.length >= 2){
+      const d = pts.map((q, i) => `${i ? 'L' : 'M'}${q[0]},${q[1]}`).join(' ');
+      html += `<path d="${d}" fill="none" stroke="${meta.color}" stroke-width="4" stroke-dasharray="10 8" opacity=".85" vector-effect="non-scaling-stroke" pointer-events="none"/>`;
+    }
+    pts.forEach(q => html += `<circle cx="${q[0]}" cy="${q[1]}" r="${6*sk}" fill="${meta.color}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke" pointer-events="none"/>`);
+  }
+  g.innerHTML = html;
+}
+function finishMepPoly(){
+  const p = ui.draw?.preview;
+  if (!p || p.type !== 'mepPoly'){ ui.draw = null; renderMep(); return; }
+  // 把当前橡皮筋点一并收进折线
+  if (p.cur && p.pts.length){
+    const last = p.pts[p.pts.length - 1];
+    if (Math.hypot(p.cur.x - last[0], p.cur.y - last[1]) > 40) p.pts.push([p.cur.x, p.cur.y]);
+  }
+  if (p.pts.length < 2){
+    toast(tr('至少点击两个点再完成（或点「完成」）', 'Need at least two points before finishing'));
+    return;
+  }
+  const type = p.mepType || ui.mepType;
+  let newId = null;
+  mutate(() => { newId = mepAddRun(type, p.pts)?.id; });
+  ui.draw = null;
+  enableMepLayers(true);
+  if (newId) select({kind:'mepRun', id: newId});
+  else renderMep();
+  toast(tr(`已添加${MEP_META[type]?.label || ''}管线 · 可选中后拖白点修改`, `Added ${MEP_META[type]?.en || ''} run · drag vertices to edit`));
+}
+function placeMepNodeAt(x, y){
+  const kind = ui.mepNodeKind || 'socket';
+  let id;
+  mutate(() => { id = mepAddNode(kind, x, y).id; });
+  enableMepLayers(true);
+  select({kind:'mepNode', id});
+  toast(tr(`已放置${MEP_NODE_META[kind]?.label || ''}`, `Placed ${MEP_NODE_META[kind]?.en || kind}`));
+}
+function undoMepPoint(){
+  const p = ui.draw?.preview;
+  if (!p || p.type !== 'mepPoly' || !p.pts.length) return;
+  p.pts.pop();
+  if (!p.pts.length){ ui.draw = null; }
+  renderMep();
+}
+
 function renderAll(){
   refreshBounds();
-  renderUnderlay(); renderGrid(); renderRooms(); renderFurn(); renderWalls(); renderOpenings(); renderLabels(); renderDims(); renderMeasure(); renderDraft(); renderSel(); renderPanel(); updateHeader();
+  renderUnderlay(); renderGrid(); renderRooms(); renderFurn(); renderWalls(); renderOpenings(); renderLabels(); renderMep(); renderDims(); renderMeasure(); renderDraft(); renderSel(); renderPanel(); updateHeader();
   window.View3D?.sync();
 }
 
@@ -1090,7 +1511,49 @@ function renderPanel(){
   if (ui.sel?.kind === 'win' || ui.sel?.kind === 'door' || ui.sel?.kind === 'slide'){
     p.innerHTML = openingPanel(ui.sel); bindOpeningPanel(ui.sel); return;
   }
+  if (ui.sel?.kind === 'mepRun'){ p.innerHTML = mepRunPanel(ui.sel.id); bindMepRunPanel(ui.sel.id); return; }
+  if (ui.sel?.kind === 'mepNode'){ p.innerHTML = mepNodePanel(ui.sel.id); bindMepNodePanel(ui.sel.id); return; }
   p.innerHTML = overviewPanel(); bindOverview();
+}
+function mepRunPanel(id){
+  const run = ensureMep().runs.find(r => r.id === id); if (!run) return overviewPanel();
+  const meta = MEP_META[run.type] || MEP_META.power;
+  const opts = Object.entries(MEP_META).map(([k, m]) => `<option value="${k}" ${run.type===k?'selected':''}>${tr(m.label, m.en)}</option>`).join('');
+  let len = 0; for (let i = 1; i < run.pts.length; i++) len += Math.hypot(run.pts[i][0]-run.pts[i-1][0], run.pts[i][1]-run.pts[i-1][1]);
+  return `<section><h3>${tr('管线','MEP run')} <small>${esc(tr(meta.label, meta.en))}</small></h3>
+    <div class="stats"><div><small>${tr('折线段数','Segments')}</small><b>${Math.max(0, run.pts.length-1)}</b></div>
+    <div><small>${tr('平面长度','Length')}</small><b>${Math.round(len)} mm</b></div></div>
+    <div class="form"><label class="full">${tr('类型','Type')}<select id="mepRunType">${opts}</select></label></div>
+    <p class="muted">${tr('拖动线上的白点可改路径；可在中点双击加点（选中后）。', 'Drag white vertices to edit. Double-click a segment to insert a point.')}</p>
+    <div class="actions"><button class="btn danger" id="mepRunDel">${tr('删除管线','Delete run')}</button>
+    <button class="btn" id="back">${tr('返回','Back')}</button></div></section>`;
+}
+function bindMepRunPanel(id){
+  $('#mepRunType').onchange = e => mutate(() => { const r = ensureMep().runs.find(x => x.id === id); if (r) r.type = e.target.value; });
+  $('#mepRunDel').onclick = () => deleteSel();
+  $('#back').onclick = () => select(null);
+}
+function mepNodePanel(id){
+  const n = ensureMep().nodes.find(x => x.id === id); if (!n) return overviewPanel();
+  const meta = MEP_NODE_META[n.kind] || MEP_NODE_META.socket;
+  const opts = Object.entries(MEP_NODE_META).map(([k, m]) => `<option value="${k}" ${n.kind===k?'selected':''}>${tr(m.label, m.en)}</option>`).join('');
+  return `<section><h3>${tr('管线节点','MEP node')} <small>${esc(tr(meta.label, meta.en))}</small></h3>
+    <div class="form">
+      <label>${tr('X (mm)','X (mm)')}<input type="number" id="mnX" value="${n.x}"></label>
+      <label>${tr('Y (mm)','Y (mm)')}<input type="number" id="mnY" value="${n.y}"></label>
+      <label class="full">${tr('类型','Type')}<select id="mnKind">${opts}</select></label>
+    </div>
+    <div class="actions"><button class="btn danger" id="mepNodeDel">${tr('删除节点','Delete node')}</button>
+    <button class="btn" id="back">${tr('返回','Back')}</button></div></section>`;
+}
+function bindMepNodePanel(id){
+  const apply = () => mutate(() => {
+    const n = ensureMep().nodes.find(x => x.id === id); if (!n) return;
+    n.x = +$('#mnX').value || n.x; n.y = +$('#mnY').value || n.y; n.kind = $('#mnKind').value;
+  });
+  $('#mnX').onchange = apply; $('#mnY').onchange = apply; $('#mnKind').onchange = apply;
+  $('#mepNodeDel').onclick = () => deleteSel();
+  $('#back').onclick = () => select(null);
 }
 function wallPanel(i){
   const w = geoWalls()[i]; if (!w) return overviewPanel();
@@ -1315,7 +1778,7 @@ function bindFurnPanel(f){
 }
 
 /* ======================= 操作 ======================= */
-function select(sel){ ui.sel = sel; renderSel(); renderPanel(); }
+function select(sel){ ui.sel = sel; renderSel(); renderMep(); renderPanel(); }
 function rotateSel(d){ if (ui.sel?.kind==='furn') mutate(() => { const f = getF(ui.sel.id); f.rot = norm(f.rot + d); }); }
 function deleteSel(){
   if (!ui.sel) return;
@@ -1337,6 +1800,16 @@ function deleteSel(){
   if (k === 'room'){
     const id = ui.sel.id; ui.sel = null;
     mutate(() => { state.geometry.roomsDef = state.geometry.roomsDef.filter(r => r.id !== id); delete state.rooms[id]; });
+    return;
+  }
+  if (k === 'mepRun'){
+    const id = ui.sel.id; ui.sel = null;
+    mutate(() => { ensureMep().runs = ensureMep().runs.filter(r => r.id !== id); });
+    return;
+  }
+  if (k === 'mepNode'){
+    const id = ui.sel.id; ui.sel = null;
+    mutate(() => { ensureMep().nodes = ensureMep().nodes.filter(n => n.id !== id); });
   }
 }
 function duplicateSel(){
@@ -1379,9 +1852,14 @@ function setTool(t){
   svg.setAttribute('class', 'tool-' + t);
   document.querySelectorAll('#tools .btn').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
   document.body.classList.toggle('draw-wall', t === 'wall');
+  document.body.classList.toggle('draw-mep-line', t === 'mepLine');
+  document.body.classList.toggle('draw-mep-node', t === 'mepNode');
   document.querySelectorAll('#wallKindGrp [data-wk]').forEach(b => b.classList.toggle('on', b.dataset.wk === ui.wallKind));
+  document.querySelectorAll('#mepTypeGrp [data-mep]').forEach(b => b.classList.toggle('on', b.dataset.mep === ui.mepType));
+  document.querySelectorAll('#mepNodeGrp [data-mn]').forEach(b => b.classList.toggle('on', b.dataset.mn === ui.mepNodeKind));
+  if (t === 'mepLine' || t === 'mepNode') enableMepLayers(true);
   syncModeHint();
-  renderMeasure(); renderDraft();
+  renderMeasure(); renderDraft(); renderMep();
 }
 function syncModeHint(){
   const hints = {select:'',
@@ -1393,7 +1871,9 @@ function syncModeHint(){
     door:tr('拖动画门洞 · 松手后选择铰链角与开启方向', 'Drag a door opening · then pick hinge corner and swing direction'),
     slide:tr('拖动画推拉门洞口（正交）', 'Drag to draw a sliding-door opening'),
     room:tr('拖动画矩形房间 · 松手后输入名称', 'Drag a rectangular room · enter a name when done'),
-    calibrate:tr('在底图上点两点（建议尺寸标注两端），再输入该段真实长度（mm）', 'Click two points on the underlay (e.g. a dimension), then enter its real length in mm')};
+    calibrate:tr('在底图上点两点（建议尺寸标注两端），再输入该段真实长度（mm）', 'Click two points on the underlay (e.g. a dimension), then enter its real length in mm'),
+    mepLine:tr('逐点画折线（正交）· 顶栏选类型 · 点「完成」或 Enter 结束 · 「撤点」可回退 · Esc 取消', 'Click polyline points · pick type · Finish / Enter · Undo pt · Esc cancels'),
+    mepNode:tr('顶栏选插座/电箱类型后，在平面图上点击放置', 'Pick node type in the top bar, then click the plan to place')};
   const h = $('#modehint'); h.textContent = hints[ui.tool] || ''; h.classList.toggle('show', !!hints[ui.tool]);
 }
 
@@ -1582,9 +2062,17 @@ function endDrag(cancel){
   }
   if (d.kind === 'pan'){
     if (!cancel && !d.moved && ui.tool === 'select'){
+      if (d.pickedMep) return; // 已在 pointerdown 选中管线
+      // 几何拾取管线（SVG hit 失败时的兜底）
+      if (d.mepPick){ select(d.mepPick); return; }
       if (d.pick) select(d.pick);
       else select(d.room ? {kind:'room', id:d.room} : null);
     }
+    return;
+  }
+  if (d.kind === 'mepVert' || d.kind === 'mepNodeMove'){
+    if (d.moved){ commit(d.before); renderAll(); }
+    else renderMep();
     return;
   }
   if (d.moved){ commit(d.before); renderAll(); }
@@ -1620,6 +2108,29 @@ svg.addEventListener('pointerdown', e => {
     }
     svg.setPointerCapture(e.pointerId); return;
   }
+  if (ui.tool === 'mepLine'){
+    e.preventDefault();
+    enableMepLayers(true);
+    const prev = ui.draw?.preview?.pts?.length ? ui.draw.preview.pts[ui.draw.preview.pts.length - 1] : null;
+    const q = mepOrthoPoint(prev, p, !e.altKey);
+    if (!ui.draw?.preview || ui.draw.preview.type !== 'mepPoly'){
+      ui.draw = {preview:{type:'mepPoly', mepType: ui.mepType, pts:[[q.x, q.y]], cur:q}};
+      toast(tr('继续点击加点 · 点顶栏「完成」或按 Enter 结束', 'Keep clicking · Finish button or Enter when done'));
+    } else {
+      const last = ui.draw.preview.pts[ui.draw.preview.pts.length - 1];
+      if (Math.hypot(q.x - last[0], q.y - last[1]) > 30) ui.draw.preview.pts.push([q.x, q.y]);
+      ui.draw.preview.cur = q;
+    }
+    renderMep();
+    svg.setPointerCapture(e.pointerId); return;
+  }
+  if (ui.tool === 'mepNode'){
+    e.preventDefault();
+    enableMepLayers(true);
+    const q = mepOrthoPoint(null, p, false);
+    placeMepNodeAt(q.x, q.y);
+    return;
+  }
   if (['wall','win','door','slide','room'].includes(ui.tool)){
     const q = snapPoint(p, true);
     ui.draw = {preview:{type:'rect', rect:[q.x,q.y,q.x,q.y]}};
@@ -1628,8 +2139,22 @@ svg.addEventListener('pointerdown', e => {
     svg.setPointerCapture(e.pointerId); return;
   }
   const h = t.closest('[data-handle]');
+  const mepVert = t.closest('[data-mep-vert]');
+  const mepRunEl = t.closest('[data-mep-run]');
+  const mepNodeEl = t.closest('[data-mep-node]');
   if (h && ui.sel?.kind === 'furn'){
     drag = {kind:h.dataset.handle, id:ui.sel.id, sx:e.clientX, sy:e.clientY, before:snap(), moved:false};
+  } else if (ui.tool === 'select' && mepVert){
+    const [rid, vi] = mepVert.dataset.mepVert.split(':');
+    select({kind:'mepRun', id:rid});
+    drag = {kind:'mepVert', rid, vi:+vi, sx:e.clientX, sy:e.clientY, before:snap(), moved:false};
+  } else if (ui.tool === 'select' && mepNodeEl){
+    select({kind:'mepNode', id:mepNodeEl.dataset.mepNode});
+    const n = ensureMep().nodes.find(x => x.id === mepNodeEl.dataset.mepNode);
+    drag = {kind:'mepNodeMove', id:n.id, sx:e.clientX, sy:e.clientY, ox:p.x-n.x, oy:p.y-n.y, before:snap(), moved:false};
+  } else if (ui.tool === 'select' && mepRunEl){
+    select({kind:'mepRun', id:mepRunEl.dataset.mepRun});
+    drag = {kind:'pan', sx:e.clientX, sy:e.clientY, x0:view.x0, y0:view.y0, moved:false, pickedMep:true};
   } else if (ui.tool === 'demolish' && t.closest('[data-wall]')){
     toggleWall(t.closest('[data-wall]').dataset.wall); return;
   } else if (ui.tool === 'select' && t.closest('[data-fid]')){
@@ -1645,7 +2170,10 @@ svg.addEventListener('pointerdown', e => {
       const wall = t.closest('[data-wall]'); if (wall) pick = {kind:'wall', i:+wall.dataset.wi};
     }
     const room = t.closest('[data-room]');
-    drag = {kind:'pan', sx:e.clientX, sy:e.clientY, x0:view.x0, y0:view.y0, room:room && room.dataset.room, pick, moved:false};
+    // 预先几何拾取管线，松手未拖动时优先选中
+    const mepPick = (ui.tool === 'select' && (ui.layers.elec || ui.layers.water || ui.layers.heat))
+      ? pickMepAt(p.x, p.y) : null;
+    drag = {kind:'pan', sx:e.clientX, sy:e.clientY, x0:view.x0, y0:view.y0, room:room && room.dataset.room, pick, mepPick, moved:false};
   }
   svg.setPointerCapture(e.pointerId);
 });
@@ -1664,6 +2192,11 @@ svg.addEventListener('pointermove', e => {
     const room = e.target.closest && e.target.closest('[data-room]');
     $('#hover').innerHTML = room ? (() => { const rr = geoRooms().find(r=>r.id===room.dataset.room); const nm0 = state.rooms[room.dataset.room]?.name || rr?.name || ''; return rr ? `<b>${esc(nm0)}</b> ${fmt(area(rr.poly))} m²` : ''; })() : '';
     if (ui.tool === 'measure' && ui.mA){ ui.mCur = snapPoint(p, e.shiftKey); renderMeasure(); }
+    if (ui.tool === 'mepLine' && ui.draw?.preview?.type === 'mepPoly'){
+      const prev = ui.draw.preview.pts[ui.draw.preview.pts.length - 1];
+      ui.draw.preview.cur = mepOrthoPoint(prev, p, !e.altKey);
+      renderMep();
+    }
     return;
   }
   const far = Math.hypot(e.clientX-drag.sx, e.clientY-drag.sy) >= TAP;
@@ -1683,6 +2216,26 @@ svg.addEventListener('pointermove', e => {
     // force orthogonal: prefer dominant axis for thin walls, else free AABB
     ui.draw = {preview:{type:'rect', rect:[drag.x0, drag.y0, x1, y1]}};
     renderDraft(); return;
+  }
+  if (drag.kind === 'mepVert'){
+    if (far) drag.moved = true;
+    const run = ensureMep().runs.find(r => r.id === drag.rid);
+    if (run?.pts[drag.vi]){
+      const q = mepOrthoPoint(null, p, !e.altKey);
+      run.pts[drag.vi] = [q.x, q.y];
+      renderMep(); renderPanel();
+    }
+    return;
+  }
+  if (drag.kind === 'mepNodeMove'){
+    if (far) drag.moved = true;
+    const n = ensureMep().nodes.find(x => x.id === drag.id);
+    if (n){
+      const q = mepOrthoPoint(null, {x:p.x-drag.ox, y:p.y-drag.oy}, false);
+      n.x = q.x; n.y = q.y;
+      renderMep();
+    }
+    return;
   }
   if (drag.kind === 'pan'){
     if (!drag.moved && !far) return;
@@ -1723,8 +2276,35 @@ svg.addEventListener('wheel', e => {
   const r = svg.getBoundingClientRect();
   zoomAt(view.s*Math.exp(-e.deltaY*(e.ctrlKey ? .01 : .0015)), e.clientX-r.left, e.clientY-r.top);
 }, {passive:false});
-svg.addEventListener('dblclick', e => { if (ui.tool==='select' && e.target.closest('[data-fid]')) rotateSel(90); });
-svg.addEventListener('contextmenu', e => { if (ui.tool==='measure'){ e.preventDefault(); ui.mA = null; renderMeasure(); } });
+svg.addEventListener('dblclick', e => {
+  if (ui.tool === 'mepLine'){ e.preventDefault(); finishMepPoly(); return; }
+  if (ui.tool === 'select' && e.target.closest('[data-fid]')) rotateSel(90);
+  // 选中管线时双击线段中点附近插入顶点
+  if (ui.tool === 'select' && ui.sel?.kind === 'mepRun'){
+    const run = ensureMep().runs.find(r => r.id === ui.sel.id);
+    if (!run || run.pts.length < 2) return;
+    const p = toMM(e);
+    let best = -1, bestD = 200;
+    for (let i = 0; i < run.pts.length - 1; i++){
+      const a = run.pts[i], b = run.pts[i+1];
+      const mx = (a[0]+b[0])/2, my = (a[1]+b[1])/2;
+      const d = Math.hypot(p.x - mx, p.y - my);
+      if (d < bestD){ bestD = d; best = i; }
+    }
+    if (best >= 0){
+      mutate(() => {
+        const r = ensureMep().runs.find(x => x.id === ui.sel.id);
+        if (!r) return;
+        const a = r.pts[best], b = r.pts[best+1];
+        r.pts.splice(best + 1, 0, [Math.round((a[0]+b[0])/2), Math.round((a[1]+b[1])/2)]);
+      });
+    }
+  }
+});
+svg.addEventListener('contextmenu', e => {
+  if (ui.tool==='measure'){ e.preventDefault(); ui.mA = null; renderMeasure(); }
+  if (ui.tool==='mepLine'){ e.preventDefault(); ui.draw = null; renderMep(); }
+});
 
 
 /* ======================= 键盘 ======================= */
@@ -1747,9 +2327,10 @@ document.addEventListener('keydown', e => {
   else if (k === 'f') fitView();
   else if (k === 'r') rotateSel(e.shiftKey ? -90 : 90);
   else if (k === 'delete' || k === 'backspace'){ e.preventDefault(); deleteSel(); }
+  else if (k === 'enter' && ui.tool === 'mepLine'){ e.preventDefault(); finishMepPoly(); }
   else if (k === 'escape'){
     if (ui.mA){ ui.mA = null; renderMeasure(); }
-    else if (ui.cal || ui.draw){ ui.cal = null; ui.draw = null; renderDraft(); }
+    else if (ui.cal || ui.draw){ ui.cal = null; ui.draw = null; renderDraft(); renderMep(); }
     else { if (ui.tool !== 'select') setTool('select'); select(null); }
   }
   else if (k.startsWith('arrow') && ui.sel?.kind === 'furn'){
@@ -1873,10 +2454,34 @@ document.querySelectorAll('.menu-pop .btn').forEach(b => b.addEventListener('cli
 document.querySelectorAll('#viewSeg .btn').forEach(b => b.onclick = () => setView(b.dataset.view));
 
 document.querySelectorAll('#tools .btn').forEach(b => b.onclick = () => setTool(b.dataset.tool));
+document.querySelectorAll('#mepTypeGrp [data-mep]').forEach(b => b.onclick = () => {
+  ui.mepType = b.dataset.mep;
+  document.querySelectorAll('#mepTypeGrp [data-mep]').forEach(x => x.classList.toggle('on', x.dataset.mep === ui.mepType));
+  if (ui.draw?.preview?.type === 'mepPoly'){ ui.draw.preview.mepType = ui.mepType; renderMep(); }
+});
+document.querySelectorAll('#mepNodeGrp [data-mn]').forEach(b => b.onclick = () => {
+  ui.mepNodeKind = b.dataset.mn;
+  document.querySelectorAll('#mepNodeGrp [data-mn]').forEach(x => x.classList.toggle('on', x.dataset.mn === ui.mepNodeKind));
+});
+$('#mepFinish').onclick = () => { if (ui.tool !== 'mepLine') setTool('mepLine'); finishMepPoly(); };
+$('#mepUndoPt').onclick = () => undoMepPoint();
+$('#mepAuto').onclick = () => {
+  if (!geoRooms().length && !geoWalls().length) return toast(tr('请先有墙体或房间再生成管线', 'Add walls/rooms first'));
+  mutate(() => { autoGenerateMep(true); });
+  enableMepLayers(true); renderMep();
+  toast(tr(`已生成管线 ${ensureMep().runs.length} 条、节点 ${ensureMep().nodes.length} 个，可选中后手改`, `Generated ${ensureMep().runs.length} runs, ${ensureMep().nodes.length} nodes — select to edit`));
+};
+$('#mepClear').onclick = () => {
+  if (!ensureMep().runs.length && !ensureMep().nodes.length) return toast(tr('没有管线', 'No MEP yet'));
+  if (!confirm(tr('清空全部管线与节点？', 'Clear all MEP runs and nodes?'))) return;
+  mutate(() => { state.mep = emptyMep(); });
+  select(null);
+};
 document.querySelectorAll('#layers .btn').forEach(b => b.onclick = () => {
   const k = b.dataset.layer; ui.layers[k] = !ui.layers[k]; b.classList.toggle('on', ui.layers[k]);
   if (k === 'dims') $('#gDims').setAttribute('display', ui.layers.dims && !state.custom ? 'inline' : 'none');
   else if (k === 'underlay') renderUnderlay();
+  else if (k === 'elec' || k === 'water' || k === 'heat'){ syncMepLayerBtns(); renderMep(); window.View3D?.syncMep?.(); }
   else if (k !== 'wallSnap') renderAll();
 });
 $('#zoomIn').onclick = () => zoomCenter(1.25);
@@ -1945,6 +2550,79 @@ function morph(mask, W, H, k, mode){
   }
   return out;
 }
+function preferWallKind(k1, k2){
+  const rank = {b:3, e:2, n:1, low:0};
+  return (rank[k1] || 0) >= (rank[k2] || 0) ? k1 : k2;
+}
+/** 把共线、间距不大的短墙段合并成连续长墙（修复识别断裂） */
+function mergeColinearWalls(walls, gapMm = 450, alignMm = 140){
+  let segs = walls.map(w => w.slice());
+  let changed = true, guard = 0;
+  while (changed && guard++ < 40){
+    changed = false;
+    const used = new Array(segs.length).fill(false), next = [];
+    for (let i = 0; i < segs.length; i++){
+      if (used[i]) continue;
+      let [a, b, c, d, k] = segs[i];
+      let horiz = (c - a) >= (d - b);
+      used[i] = true;
+      let grew = true;
+      while (grew){
+        grew = false;
+        for (let j = 0; j < segs.length; j++){
+          if (used[j]) continue;
+          const [a2, b2, c2, d2, k2] = segs[j];
+          const horiz2 = (c2 - a2) >= (d2 - b2);
+          if (horiz !== horiz2) continue;
+          if (horiz){
+            const y1 = (b + d) / 2, y2 = (b2 + d2) / 2;
+            if (Math.abs(y1 - y2) > alignMm) continue;
+            if (Math.abs((d - b) - (d2 - b2)) > alignMm * 1.2) continue;
+            const gap = Math.max(a2 - c, a - c2); // 重叠则为负
+            if (gap > gapMm) continue;
+            // 合并：X 取并集；Y 取厚度中心对齐后的统一厚度
+            a = Math.min(a, a2); c = Math.max(c, c2);
+            const cy = (Math.min(b, b2) + Math.max(d, d2)) / 2;
+            const th = Math.max(d - b, d2 - b2);
+            b = Math.round(cy - th / 2); d = Math.round(cy + th / 2);
+            k = preferWallKind(k, k2);
+            used[j] = true; grew = true; changed = true;
+          } else {
+            const x1 = (a + c) / 2, x2 = (a2 + c2) / 2;
+            if (Math.abs(x1 - x2) > alignMm) continue;
+            if (Math.abs((c - a) - (c2 - a2)) > alignMm * 1.2) continue;
+            const gap = Math.max(b2 - d, b - d2);
+            if (gap > gapMm) continue;
+            b = Math.min(b, b2); d = Math.max(d, d2);
+            const cx = (Math.min(a, a2) + Math.max(c, c2)) / 2;
+            const tw = Math.max(c - a, c2 - a2);
+            a = Math.round(cx - tw / 2); c = Math.round(cx + tw / 2);
+            k = preferWallKind(k, k2);
+            used[j] = true; grew = true; changed = true;
+          }
+        }
+      }
+      next.push([a, b, c, d, k]);
+    }
+    segs = next;
+  }
+  // 厚度归一：过薄/略宽的墙收到常见墙厚，减少碎段观感
+  return segs.map(([a, b, c, d, k]) => {
+    const tw = c - a, th = d - b, horiz = tw >= th;
+    if (horiz){
+      let t = th;
+      if (t >= 80 && t <= 160) t = 200;
+      else if (t > 160 && t < 280) t = Math.round((t + 200) / 2);
+      const cy = (b + d) / 2;
+      return [a, Math.round(cy - t / 2), c, Math.round(cy + t / 2), k];
+    }
+    let t = tw;
+    if (t >= 80 && t <= 160) t = 200;
+    else if (t > 160 && t < 280) t = Math.round((t + 200) / 2);
+    const cx = (a + c) / 2;
+    return [Math.round(cx - t / 2), b, Math.round(cx + t / 2), d, k];
+  });
+}
 function autoRebuildFromCanvas(cv, totalWmm){
   const W = cv.width, H = cv.height, ctx = cv.getContext('2d');
   const img = ctx.getImageData(0, 0, W, H).data;
@@ -1953,8 +2631,9 @@ function autoRebuildFromCanvas(cv, totalWmm){
     const lum = (img[i] + img[i + 1] + img[i + 2]) / 3;
     wall0[p] = lum < 55 ? 1 : 0;
   }
-  // 开运算去掉家具细线，再略膨胀保证墙连续
+  // 开运算去家具细线 → 闭运算填小缺口 → 再略膨胀保证连续
   let core = morph(morph(wall0, W, H, 2, 'min'), W, H, 2, 'max');
+  core = morph(morph(core, W, H, 2, 'max'), W, H, 2, 'min'); // close：把断续短墙的像素缝先粘上
   core = morph(core, W, H, 1, 'max');
 
   let minX = W, minY = H, maxX = 0, maxY = 0, dark = 0;
@@ -1966,7 +2645,7 @@ function autoRebuildFromCanvas(cv, totalWmm){
   const totalHmm = Math.round((maxY - minY) * mm);
   const toMm = (x, y) => [Math.round((x - minX) * mm), Math.round((y - minY) * mm)];
 
-  // 提取轴对齐墙矩形
+  // 提取轴对齐墙矩形（允许行内更多缺口，后面再用毫米级合并补齐）
   const visited = new Uint8Array(W * H);
   const rects = [];
   for (let y = 0; y < H; y++){
@@ -1976,29 +2655,29 @@ function autoRebuildFromCanvas(cv, totalWmm){
       let xe = x; while (xe < W && core[y * W + xe]) xe++;
       let ye = y;
       while (ye < H){
-        let ok = true;
-        for (let xx = x; xx < xe; xx++) if (!core[ye * W + xx]){ ok = false; break; }
-        // 允许少量缺口
         let hit = 0; for (let xx = x; xx < xe; xx++) if (core[ye * W + xx]) hit++;
-        if (hit / (xe - x) < 0.85) break;
+        if (hit / (xe - x) < 0.72) break; // 比原来更容忍缺口，减少被拆成碎段
         ye++;
       }
       for (let yy = y; yy < ye; yy++) for (let xx = x; xx < xe; xx++) visited[yy * W + xx] = 1;
       const bw = xe - x, bh = ye - y;
-      if (Math.max(bw, bh) >= 7 && Math.min(bw, bh) >= 2) rects.push([x, y, xe, ye]);
+      if (Math.max(bw, bh) >= 5 && Math.min(bw, bh) >= 2) rects.push([x, y, xe, ye]);
       x = xe;
     }
   }
-  const walls = [];
+  let walls = [];
   for (const [x0, y0, x1, y1] of rects){
     const [a, b] = toMm(x0, y0), [c, d] = toMm(x1, y1);
     const tw = c - a, th = d - b, t = Math.min(tw, th), L = Math.max(tw, th);
-    if (L < 250 || t > 550) continue;
+    if (L < 120 || t > 550) continue; // 短段先保留，交给合并
     let kind = 'n';
     if (a < 150 || b < 150 || c > totalWmm - 150 || d > totalHmm - 150) kind = 'e';
     else if (t >= 190) kind = 'b';
     walls.push([a, b, c, d, kind]);
   }
+  // 共线短墙合并成连续长墙
+  walls = mergeColinearWalls(walls, Math.max(350, Math.round(mm * 18)), Math.max(100, Math.round(mm * 6)));
+  walls = walls.filter(w => Math.max(w[2] - w[0], w[3] - w[1]) >= 200);
 
   // 按地板颜色连通域识别房间
   const label = new Int32Array(W * H); // 0 empty
@@ -2156,11 +2835,14 @@ function applyAutoRebuild(canvas, totalW, fallbackUnderlay){
       state.rooms = roomsMetaFromGeo(result.geometry.roomsDef);
       state.custom = true;
       ui.sel = null; ui.cal = null; ui.draw = null;
-      commit(b); refreshBounds(); renderAll(); fitView();
+      commit(b); refreshBounds();
+      autoGenerateMep(true);
+      enableMepLayers(true);
+      renderAll(); fitView();
       setTool('select');
       toast(tr(
-        `已重建：墙 ${result.meta.wallCount}、房间 ${result.meta.roomCount}。可补门窗后切 3D。`,
-        `Rebuilt: ${result.meta.wallCount} walls, ${result.meta.roomCount} rooms. Add openings, then open 3D.`
+        `已重建：墙 ${result.meta.wallCount}、房间 ${result.meta.roomCount}；已自动生成管线（可「画管线/放节点」手改）。`,
+        `Rebuilt: ${result.meta.wallCount} walls, ${result.meta.roomCount} rooms; MEP auto-generated (edit with Draw/Nodes).`
       ));
     } catch (err){
       console.error(err);
@@ -2233,6 +2915,16 @@ applyStaticLang(); syncFullscreen();
 buildDefs(); buildLib(); renderOpenings(); renderDims();
 $('#tip').textContent = TIPS()['2d'];
 fitView(); renderAll();
+// 已保存的自定义户型：打开管线层；若还没有管线则自动生成一次
+if (state.custom && (geoRooms().length || geoWalls().length)){
+  if (!ensureMep().runs.length && !ensureMep().nodes.length) autoGenerateMep(true);
+  enableMepLayers(true);
+  renderMep(); save();
+}
+// 内置示例：首次也可一键有管线（不强制覆盖用户已改）
+if (!state.custom && !ensureMep().runs.length){
+  // 不自动改内置方案，等用户点「自动管线」
+}
 loadUnderlayFromIDB().then(() => { refreshBounds(); renderUnderlay(); });
 </script>
 <script type="module">
@@ -2254,11 +2946,13 @@ const OX = 6000, OY = 5300, H = 2.8, FOV = 45;       // 户型中心放在世界
 const wx = x => (x - OX) / 1000, wz = y => (y - OY) / 1000, M = v => v / 1000;
 const SW = () => stage.clientWidth, SH = () => stage.clientHeight;
 const opt = {cut:2.8, furn:true, labels:true, night:false, hour:10, mode:'orbit'};
+const mepOn = k => !!ui.layers[k];
 
 let inited = false, active = false, raf = 0, anim = null, fly = null;
 let renderer, labelRenderer, scene, camera, orbit, walkCtl, hemi, sun, ground, glassMat, wallMat, capMat, frameMat;
-let archFloor, archUp, furnG, labelG, lampG, colliders = [], selKey = null, selHelper = null;
-let sigArch = '', sigFurn = '', sigLabels = '', grow = 1, furnGrow = 1;
+let archFloor, archUp, furnG, labelG, lampG, mepG, colliders = [], selKey = null, selHelper = null;
+let sigArch = '', sigFurn = '', sigLabels = '', sigMep = '', grow = 1, furnGrow = 1;
+const mepMats = {};
 const doors = [], keys = {};
 
 /* ======================= 初始化 ======================= */
@@ -2297,8 +2991,8 @@ function init(){
   glassMat = new THREE.MeshPhysicalMaterial({color:0xcfe6ef, roughness:.05, transparent:true, opacity:.28, depthWrite:false, side:THREE.DoubleSide});
   wallMat = mat('#f4f1eb', {roughness:.92}); capMat = mat('#34312d', {roughness:.9}); frameMat = mat('#5d6166', {roughness:.5, metalness:.4});
 
-  archFloor = new THREE.Group(); archUp = new THREE.Group(); furnG = new THREE.Group(); labelG = new THREE.Group(); lampG = new THREE.Group();
-  scene.add(archFloor, archUp, furnG, labelG, lampG);
+  archFloor = new THREE.Group(); archUp = new THREE.Group(); furnG = new THREE.Group(); labelG = new THREE.Group(); lampG = new THREE.Group(); mepG = new THREE.Group();
+  scene.add(archFloor, archUp, furnG, labelG, lampG, mepG);
 
   const cv = renderer.domElement; let downAt = null, look = null;
   cv.addEventListener('pointerdown', e => {
@@ -3005,6 +3699,65 @@ function buildFurniture(f){
 
 /* ======================= 建筑 ======================= */
 function clearGroup(g){ g.traverse(o => { if (o.geometry) o.geometry.dispose(); }); g.clear(); }
+
+/* ======================= 管线 MEP 3D（读取可编辑 state.mep） ======================= */
+function mepMat(key, color){
+  if (mepMats[key]) return mepMats[key];
+  return mepMats[key] = new THREE.MeshStandardMaterial({
+    color, roughness:.35, metalness:.25, emissive:color, emissiveIntensity:.22,
+  });
+}
+function mepY(h){ return Math.min(h, Math.max(0.06, opt.cut - 0.06)); }
+function addPipeRun(g, pts3, radius, material){
+  if (!pts3 || pts3.length < 2) return;
+  for (let i = 0; i < pts3.length - 1; i++){
+    const A = pts3[i], B = pts3[i + 1];
+    if (Math.hypot(B[0] - A[0], B[1] - A[1], B[2] - A[2]) < 0.02) continue;
+    const pipe = rod(A, B, radius, material, radius, 8);
+    pipe.castShadow = false; pipe.receiveShadow = false; g.add(pipe);
+    const elbow = blob(radius * 1.35, radius * 1.35, radius * 1.35, material, B[0], B[1], B[2], 8);
+    elbow.castShadow = false; elbow.receiveShadow = false; g.add(elbow);
+  }
+  const start = blob(radius * 1.55, radius * 1.55, radius * 1.55, material, pts3[0][0], pts3[0][1], pts3[0][2], 8);
+  start.castShadow = false; start.receiveShadow = false; g.add(start);
+}
+function buildMep(){
+  if (!mepG) return;
+  clearGroup(mepG);
+  const show = mepOn('elec') || mepOn('water') || mepOn('heat');
+  mepG.visible = show;
+  syncMepLayerBtns();
+  if (!show) return;
+  const mep = ensureMep();
+  for (const run of mep.runs){
+    const meta = MEP_META[run.type]; if (!meta || !ui.layers[meta.layer]) continue;
+    if (!run.pts || run.pts.length < 2) continue;
+    const z = meta.z;
+    const pts3 = run.pts.map(([x, y]) => [wx(x), mepY(z), wz(y)]);
+    // 强电接到插座：末端垂落到插座高度
+    if (run.type === 'power' || run.type === 'weak'){
+      const last = pts3[pts3.length - 1];
+      pts3.push([last[0], mepY(0.32), last[2]]);
+    }
+    addPipeRun(mepG, pts3, meta.r, mepMat(run.type, meta.color));
+  }
+  for (const n of mep.nodes){
+    const meta = MEP_NODE_META[n.kind]; if (!meta || !ui.layers[meta.layer]) continue;
+    const m = mepMat('n_' + n.kind, meta.color);
+    const x = wx(n.x), z = wz(n.y), y = mepY(meta.z);
+    if (n.kind === 'panel' || n.kind === 'weakPanel'){
+      mepG.add(box(0.4, 0.55, 0.12, m, x, y - 0.27, z));
+    } else if (n.kind === 'acIn'){
+      mepG.add(box(0.85, 0.22, 0.18, m, x, y - 0.11, z));
+    } else if (n.kind === 'acOut'){
+      mepG.add(box(0.35, 0.55, 0.28, m, x, 0.05, z));
+    } else {
+      // 墙面插座小板
+      mepG.add(box(0.09, 0.09, 0.03, m, x, y - 0.045, z));
+    }
+  }
+}
+
 function wallBox([x0, y0, x1, y1], yb, yt, m){
   if (yt - yb <= .001) return;
   const o = new THREE.Mesh(new THREE.BoxGeometry(M(x1-x0), yt-yb, M(y1-y0)), m || [wallMat, wallMat, capMat, wallMat, wallMat, wallMat]);
@@ -3109,9 +3862,11 @@ function buildLabels(){
 function sync(force){
   if (!inited || (!active && !force)) return;
   const a = JSON.stringify([state.rooms, state.demolished, state.geometry, opt.cut]), f = JSON.stringify(state.furniture), l = JSON.stringify([state.rooms, state.geometry.roomsDef, opt.cut]);
+  const m = JSON.stringify([state.mep, opt.cut, ui.layers.elec, ui.layers.water, ui.layers.heat]);
   if (force || a !== sigArch){ sigArch = a; buildArch(); }
   if (force || f !== sigFurn){ sigFurn = f; buildFurn(); }
   if (force || l !== sigLabels){ sigLabels = l; buildLabels(); }
+  if (force || m !== sigMep){ sigMep = m; buildMep(); }
 }
 
 // CSS2DRenderer 只看标签自身的 visible，不继承父级，所以逐个设置
@@ -3184,6 +3939,11 @@ function flyToRoom(id){
 async function enter(){
   init(); active = true;
   renderer.setSize(SW(), SH()); labelRenderer.setSize(SW(), SH()); camera.aspect = SW()/SH(); camera.updateProjectionMatrix();
+  // 自定义户型进入 3D 时若尚未开管线，自动打开，避免「看不到」
+  if (state.custom && !mepOn('elec') && !mepOn('water') && !mepOn('heat')){
+    enableMepLayers(true);
+    renderMep();
+  }
   sync(true);
   opt.mode = 'orbit'; orbit.enabled = false; showLabels(false);
   const A = planPose(), B = isoFrom(A);
@@ -3471,7 +4231,15 @@ function bindUI(){
   $('#vTop').onclick = () => { if (opt.mode === 'walk') setMode('orbit'); flyTo(topWhole()); };
   document.querySelectorAll('[data-cut]').forEach(b => b.onclick = () => { if (opt.mode === 'walk') return; opt.cut = +b.dataset.cut; syncCutBtns(); sync(); });
   document.querySelectorAll('#toggles3d .btn').forEach(b => b.onclick = () => {
-    const k = b.dataset.t; opt[k] = !opt[k]; b.classList.toggle('on', opt[k]);
+    const k = b.dataset.t;
+    if (k === 'elec' || k === 'water' || k === 'heat'){
+      ui.layers[k] = !ui.layers[k];
+      syncMepLayerBtns();
+      renderMep();
+      buildMep();
+      return;
+    }
+    opt[k] = !opt[k]; b.classList.toggle('on', opt[k]);
     if (k === 'furn'){ furnG.visible = opt.furn; if (!opt.furn && ui.sel?.kind === 'furn') window.select(null); }
     if (k === 'labels') showLabels(opt.labels && opt.mode === 'orbit' && !anim);
     if (k === 'night') applyLight();
@@ -3500,7 +4268,7 @@ function shot(){ const a = document.createElement('a'); a.download = tr('户型�
 function relang(){ syncWalkTexts(); if (inited) buildLabels(); }
 
 window.View3D = {
-  enter, exit, relang, sync:() => sync(), shot, groundAt,
+  enter, exit, relang, sync:() => sync(), syncMep:() => { if (inited) buildMep(); }, shot, groundAt,
   flyToRoom:id => active && !anim && flyToRoom(id),
   walking:() => active && opt.mode === 'walk',
   walkState:() => ({mode:opt.mode, walkStarted, freeWalk, touchWalk, locked:!!walkCtl?.isLocked,
@@ -3510,5 +4278,8 @@ window.View3D = {
   _hold(code, on){ keys[code] = !!on; if (code.startsWith('Key')) keys[code.slice(3).toLowerCase()] = !!on; },
 };
 </script>
+
+
+
 </body>
 </html>
