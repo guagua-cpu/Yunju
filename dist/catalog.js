@@ -1,5 +1,5 @@
 /* Structured demonstration catalog. No claims of real brands, stock, ratings or certifications. */
-window.QijuCatalog={
+window.YunjuCatalog={
  groups:[
  ['瓷砖石材','地砖|墙砖|木纹砖|花砖|马赛克|大板岩板|台面石材|窗台石材','㎡',89,'300×300|300×600|600×600|600×1200|750×1500'],
  ['地板板材','实木地板|实木复合地板|强化地板|SPC地板|软木地板|地板踢脚线|地垫|收口条','㎡',168,'900×125|1200×180|1900×190'],
