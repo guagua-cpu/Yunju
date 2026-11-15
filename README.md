@@ -1,6 +1,7 @@
 # 云居 · 最有温度的家装行业数字化服务商
 
 当前第三版功能、验证和交付边界见 [第三版说明](FEATURES-v3.md)。第二版见 [第二版记录](FEATURES-v2.md)。以下第一版说明保留作历史参考。
+https://github.com/guagua-cpu/Yunju/tree/main/dist/index.html
 
 ## 本地运行
 
